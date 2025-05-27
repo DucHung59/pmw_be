@@ -38,8 +38,6 @@
         <div class="email-content">
             <h2>You've been invited to workspace!</h2>
             <p>Click the button below to accept the invitation:</p>
-            <strong>Workspace Name:</strong> {{ $workspaceName }}<br>
-            <strong>Role:</strong> {{ $role }}
             
             <div style="margin: 20px 0;">
                 <a href="{{ $inviteUrl }}" class="btn">Accept Invitation</a>
