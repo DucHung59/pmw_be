@@ -41,6 +41,22 @@ class WorkspaceController extends Controller
         ]);
     }
 
+    function getWorkspaceByUser(Request $request)
+    {
+        $workspaceMember = WorkspaceMember::where('user_id', Auth::id())->first();
+        if ($workspaceMember) {
+            $workspace = Workspace::find($workspaceMember->workspace_id);
+        } else {
+            $workspace = null;
+        }
+
+        return response()->json([
+            'message' => 'Workspaces retrieved successfully',
+            'workspace' => $workspace,
+            'role' => $workspaceMember ? $workspaceMember->role : null
+        ]);
+    }
+
     function getAllMembers(Request $request)
     {
         // Validate the request
@@ -98,6 +114,7 @@ class WorkspaceController extends Controller
         ]);
     }
 
+
     public function acceptInvite(Request $request)
     {
         $invite = WorkspaceInvite::where('token', $request->token)
@@ -149,6 +166,26 @@ class WorkspaceController extends Controller
             'invite' => $invite,
             'workspace' => $workspace,
             'role' => $workspaceMember->role,
+        ]);
+    }
+
+    public function getAllInvites(Request $request)
+    {
+        $request->validate([
+            'workspace_id' => 'required',
+            'search_status' => 'nullable|string|max:255',
+        ]);
+
+        $invites = WorkspaceInvite::where('workspace_id', $request->workspace_id)
+            ->when($request->search_status, function ($query) use ($request) {
+                return $query->where('status', $request->search_status);
+            })
+            ->with(['inviter:id,username,email'])
+            ->get();
+
+        return response()->json([
+            'message' => 'Invites retrieved successfully',
+            'invites' => $invites,
         ]);
     }
 }

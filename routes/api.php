@@ -11,6 +11,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::get('/workspace', [WorkspaceController::class, 'getWorkspaceByUser'])->middleware('auth:sanctum');
+
 Route::prefix('auth')->group(function () {
     Route::post('/signin', [AuthController::class, 'signin']);
     Route::post('/signup', [AuthController::class, 'signup']);
@@ -22,6 +24,7 @@ Route::prefix('workspace')->group(function () {
     Route::get('/members', [WorkspaceController::class, 'getAllMembers'])->middleware('auth:sanctum');
     Route::post('/invite', [WorkspaceController::class, 'sendInvite'])->middleware('auth:sanctum');
     Route::post('/invite/accept', [WorkspaceController::class, 'acceptInvite'])->middleware('auth:sanctum');
+    Route::get('/invites/get', [WorkspaceController::class, 'getAllInvites'])->middleware('auth:sanctum');
 });
 
 Route::prefix('project')->group(function () {
