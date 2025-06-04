@@ -106,9 +106,12 @@ class ProjectController extends Controller
             ], 404);
         }
 
+        $projectIssues = ProjectIssue::where('project_id', $project->id)->get();
+
         return response()->json([
             'message' => 'Project details retrieved successfully',
-            'project' => $project
+            'project' => $project,
+            'issues' => $projectIssues,
         ]);
     }
 
