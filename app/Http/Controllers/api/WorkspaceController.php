@@ -130,7 +130,7 @@ class WorkspaceController extends Controller
                 'status' => 'unauthenticated',
                 'invite_token' => $invite->token,
                 'invite_email' => $invite->email,
-            ], 401);
+            ]);
         }
 
         // Check trùng email với lời mời
