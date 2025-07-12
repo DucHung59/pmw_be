@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\api\AuthController;
 use App\Http\Controllers\api\WorkspaceController;
 use App\Http\Controllers\api\ProjectController;
+use App\Http\Controllers\api\TaskController;
 use Illuminate\Support\Facades\Mail;
 
 Route::get('/user', function (Request $request) {
@@ -30,7 +31,12 @@ Route::prefix('workspace')->group(function () {
 Route::prefix('project')->group(function () {
     Route::post('/create', [ProjectController::class, 'create'])->middleware('auth:sanctum');
     Route::get('/get', [ProjectController::class, 'getProjectByUser'])->middleware('auth:sanctum');
-    Route::get('/detail', [ProjectController::class, 'getProjectDetail']);
+    Route::get('/detail', [ProjectController::class, 'getProjectDetail'])->middleware('auth:sanctum');
+    Route::post('/addMember', [ProjectController::class, 'addProjectMember'])->middleware('auth:sanctum');
+});
+
+Route::prefix('task')->group(function () {
+    Route::post('/create', [TaskController::class, 'create'])->middleware('auth:sanctum');
 });
 
 

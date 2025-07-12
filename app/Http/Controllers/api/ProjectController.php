@@ -8,6 +8,7 @@ use App\Models\Project;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ProjectMember;
 use App\Models\ProjectIssue;
+use App\Models\ProjectStatus;
 
 class ProjectController extends Controller
 {
@@ -35,6 +36,7 @@ class ProjectController extends Controller
         ]);
 
         $issueTypes = ['Task', 'Bug', 'Request', 'Other'];
+        $statusTypes = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
         foreach ($issueTypes as $issueType) {
             if ($issueType === 'Task') {
@@ -50,6 +52,23 @@ class ProjectController extends Controller
                 'project_id' => $project->id,
                 'issue_type' => $issueType,
                 'issue_color' => $issueColor,
+            ]);
+        }
+
+        foreach($statusTypes as $statusType) {
+            if ($statusType === 'Open') {
+                $statusColor = '#f87171'; // Red for Open
+            } elseif ($statusType === 'In Progress') {
+                $statusColor = '#fbbf24'; // Yellow for In Progress
+            } elseif ($statusType === 'Resolved') {
+                $statusColor = '#22c55e'; // Green for Resolved
+            } else {
+                $statusColor = '#6b7280'; // Grey for Closed
+            }
+            ProjectStatus::create([
+                'project_id' => $project->id,
+                'status_type' => $statusType,
+                'status_color' => $statusColor,
             ]);
         }
 
@@ -92,10 +111,6 @@ class ProjectController extends Controller
 
     public function getProjectDetail(Request $request)
     {
-        $request->validate([
-            'project_key' => 'required|exists:tblProjects,project_key',
-        ]);
-
         $project = Project::where('project_key', $request->project_key)
             ->with(['members.user:id,username,email'])
             ->first();
@@ -107,15 +122,55 @@ class ProjectController extends Controller
         }
 
         $projectIssues = ProjectIssue::where('project_id', $project->id)->get();
+        $projectStatuses = ProjectStatus::where('project_id', $project->id)->get();
 
         return response()->json([
             'message' => 'Project details retrieved successfully',
             'project' => $project,
             'issues' => $projectIssues,
+            'statuses' => $projectStatuses
         ]);
     }
 
     public function addProjectMember(Request $request) {
+        $request->validate([
+            'project_key' => 'required|exists:tblProjects,project_key',
+            'user_id' => 'required|integer|exists:tblUsers,id',
+            'role' => 'required|string|max:50',
+        ]);
 
+        $project = Project::where('project_key', $request->project_key)->first();
+
+        if (!$project) {
+            return response()->json([
+                'message' => 'Project not found',
+                'success' => false
+            ]);
+        }
+
+        // Check if the user is already a member of the project
+        $existingMember = ProjectMember::where('project_id', $project->id)
+            ->where('user_id', $request->user_id)
+            ->first();
+
+        if ($existingMember) {
+            return response()->json([
+                'message' => 'User is already a member of this project',
+                'success' => false
+            ]);
+        }
+
+        // Add the new member to the project
+        $newMember = ProjectMember::create([
+            'user_id' => $request->user_id,
+            'project_id' => $project->id,
+            'project_role' => $request->role,
+        ]);
+
+        return response()->json([
+            'message' => 'Project member added successfully',
+            'member' => $newMember,
+            'success' => true
+        ]);
     }
 }

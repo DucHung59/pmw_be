@@ -67,7 +67,8 @@ class WorkspaceController extends Controller
         // Get all members of the workspace
         $members = WorkspaceMember::where('workspace_id', $request->workspaceId)
             ->with(['user:id,username,email'])
-            ->get(['user_id', 'role', 'created_at']);
+            ->select(['user_id', 'role', 'created_at'])
+            ->paginate(10);
 
         return response()->json([
             'message' => 'Workspace members retrieved successfully',
@@ -128,6 +129,7 @@ class WorkspaceController extends Controller
             return response()->json([
                 'message' => 'You must be logged in to accept the invitation.',
                 'status' => 'unauthenticated',
+                'success' => 'false',
                 'invite_token' => $invite->token,
                 'invite_email' => $invite->email,
             ]);
@@ -135,7 +137,13 @@ class WorkspaceController extends Controller
 
         // Check trùng email với lời mời
         if ($user->email !== $invite->email) {
-            abort(403, 'This invitation was not sent to your email.');
+            return response()->json([
+                'message' => 'Your email does not match the invite email.',
+                'status' => 'unauthenticated',
+                'success' => 'false',
+                'invite_token' => $invite->token,
+                'invite_email' => $invite->email,
+            ]);
         }
 
         // Check nếu user đã là thành viên
@@ -163,6 +171,7 @@ class WorkspaceController extends Controller
 
         return response()->json([
             'message' => 'Invite accepted successfully',
+            'success' => 'true',
             'invite' => $invite,
             'workspace' => $workspace,
             'role' => $workspaceMember->role,
@@ -181,7 +190,8 @@ class WorkspaceController extends Controller
                 return $query->where('status', $request->search_status);
             })
             ->with(['inviter:id,username,email'])
-            ->get();
+            ->select()
+            ->paginate(10);
 
         return response()->json([
             'message' => 'Invites retrieved successfully',
