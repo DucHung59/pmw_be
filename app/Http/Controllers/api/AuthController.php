@@ -49,7 +49,7 @@ class AuthController extends Controller
     {
         // Validate the request
         $request->validate([
-            'username' => 'required|string|max:255',
+            'username' => 'required|string|max:255|not_in:admin',
             'email' => 'required|email|unique:tblUsers,email',
             'password' => 'required|string|min:8',
         ]);

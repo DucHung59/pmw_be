@@ -16,6 +16,7 @@ class Task extends Model
         'issue_type',
         'assignee',
         'description',
+        'priority',
         'due_date',
         'created_by',
         'updated_by',

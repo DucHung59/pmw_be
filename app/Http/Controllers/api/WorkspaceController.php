@@ -198,4 +198,28 @@ class WorkspaceController extends Controller
             'invites' => $invites,
         ]);
     }
+
+    public function getAllWorkspaces(Request $request)
+    {
+        $workspaces = Workspace::select('id', 'workspace_name', 'created_at')
+            ->paginate(10);
+
+        return response()->json([
+            'message' => 'Workspaces retrieved successfully',
+            'workspaces' => $workspaces,
+        ]);
+    }
+
+    public function getWorkspaceById(Request $request)
+    {
+        
+        $workspace = Workspace::find($request->workspace_id);
+        
+
+        return response()->json([
+            'message' => 'Workspaces retrieved successfully',
+            'workspace' => $workspace,
+            'role' => 'admin',
+        ]);
+    }
 }

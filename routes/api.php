@@ -13,6 +13,8 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/workspace', [WorkspaceController::class, 'getWorkspaceByUser'])->middleware('auth:sanctum');
+Route::get('/getAllWorkspace', [WorkspaceController::class, 'getAllWorkspaces'])->middleware('auth:sanctum');
+Route::get('/getWorkspaceById', [WorkspaceController::class, 'getWorkspaceById'])->middleware('auth:sanctum');
 
 Route::prefix('auth')->group(function () {
     Route::post('/signin', [AuthController::class, 'signin']);
@@ -33,10 +35,16 @@ Route::prefix('project')->group(function () {
     Route::get('/get', [ProjectController::class, 'getProjectByUser'])->middleware('auth:sanctum');
     Route::get('/detail', [ProjectController::class, 'getProjectDetail'])->middleware('auth:sanctum');
     Route::post('/addMember', [ProjectController::class, 'addProjectMember'])->middleware('auth:sanctum');
+    Route::get('/getAllProjects', [ProjectController::class, 'getAllProjects'])->middleware('auth:sanctum');
 });
 
 Route::prefix('task')->group(function () {
     Route::post('/create', [TaskController::class, 'create'])->middleware('auth:sanctum');
+    Route::get('/get', [TaskController::class, 'getTasksByProject'])->middleware('auth:sanctum');
+    Route::get('/getByAssignee', [TaskController::class, 'getTasksByAssignee'])->middleware('auth:sanctum');
+    Route::get('/getByCreator', [TaskController::class, 'getTasksByCreator'])->middleware('auth:sanctum');
+    Route::get('/detail', [TaskController::class, 'getTaskDetail'])->middleware('auth:sanctum');
+    Route::post('/addComment', [TaskController::class, 'addComment'])->middleware('auth:sanctum');
 });
 
 

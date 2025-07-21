@@ -23,6 +23,7 @@ return new class extends Migration
             $table->unsignedBigInteger('assignee')->nullable(); // FK to tblUsers
 
             $table->text('description')->nullable();
+            $table->string('priority')->default('normal');
             $table->date('due_date')->nullable();
 
             $table->timestamps(); // created_at, updated_at

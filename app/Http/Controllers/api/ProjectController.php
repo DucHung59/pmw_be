@@ -109,6 +109,17 @@ class ProjectController extends Controller
         ]);
     }
 
+    public function getAllProjects(Request $request)
+    {
+        $projects = Project::with('members.user:id,username,email')
+            ->paginate(10);
+
+        return response()->json([
+            'message' => 'Projects retrieved successfully',
+            'projects' => $projects
+        ]);
+    }
+
     public function getProjectDetail(Request $request)
     {
         $project = Project::where('project_key', $request->project_key)
