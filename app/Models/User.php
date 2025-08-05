@@ -14,7 +14,7 @@ class User extends Authenticatable
     use HasApiTokens, Notifiable;
 
     protected $table = 'tblUsers';
-    protected $fillable = ['username', 'email', 'password', 'verify'];
+    protected $fillable = ['username', 'email', 'password', 'password_complex', 'verify'];
     protected $hidden = ['password'];
 
     public function workspaces()

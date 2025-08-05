@@ -7,12 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class ProjectIssue extends Model
 {
     //
-    protected $table = 'tblProjectIssues';
+    protected $table = 'tblTaskCategories';
 
     protected $fillable = [
         'project_id',
-        'issue_type',
-        'issue_color',
+        'category_type',
+        'category_color',
     ];
 
     public function project()

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\api;
 
+use App\Helpers\ActivityLogger;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -157,15 +158,24 @@ class WorkspaceController extends Controller
                 'workspace_id' => $invite->workspace_id,
                 'role' => $invite->role,
             ]);
+
+            $workspace = Workspace::find($invite->workspace_id);
+            if (!$workspace) {
+                return response()->json([
+                    'message' => 'Workspace not found',
+                    'status' => 'not_found',
+                ], 404);
+            }
+
+            // Log the activity
+            ActivityLogger::log(
+                'add',
+                $user->id,
+                "Chào mừng {$user->username} tham gia không gian làm việc {$workspace->workspace_name} với vai trò {$workspaceMember->role}.",
+                $workspace->id
+            );
         }
 
-        $workspace = Workspace::find($invite->workspace_id);
-        if (!$workspace) {
-            return response()->json([
-                'message' => 'Workspace not found',
-                'status' => 'not_found',
-            ], 404);
-        }
 
         $invite->update(['status' => 'accepted']);
 
@@ -220,6 +230,44 @@ class WorkspaceController extends Controller
             'message' => 'Workspaces retrieved successfully',
             'workspace' => $workspace,
             'role' => 'admin',
+        ]);
+    }
+
+    public function changeMemberRole(Request $request)
+    {
+        $request->validate([
+            'workspace_id' => 'required|exists:tblWorkspaces,id',
+            'user_id' => 'required|exists:tblUsers,id',
+            'new_role' => 'required|string',
+        ]);
+
+        $isAdmin = WorkspaceMember::where('user_id', Auth::id())
+            ->where('workspace_id', $request->workspace_id)
+            ->exists();
+
+        if (!$isAdmin) {
+            return response()->json([
+                'message' => 'You do not have permission to change member roles',
+                'success' => false,
+            ]);
+        }
+
+        $workspaceMember = WorkspaceMember::where('workspace_id', $request->workspace_id)
+            ->where('user_id', $request->user_id)
+            ->first();
+
+        if (!$workspaceMember) {
+            return response()->json([
+                'message' => 'Member not found in the workspace',
+            ], 404);
+        }
+
+        $workspaceMember->update(['role' => $request->new_role]);
+
+        return response()->json([
+            'message' => 'Member role updated successfully',
+            'member' => $workspaceMember,
+            'success' => true,
         ]);
     }
 }

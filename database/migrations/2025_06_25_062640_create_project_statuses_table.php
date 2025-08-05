@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tblProjectStatuses', function (Blueprint $table) {
+        Schema::create('tblTaskStatuses', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('project_id');
             $table->string('status_type');
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tblProjectStatuses');
+        Schema::dropIfExists('tblTaskStatuses');
     }
 };

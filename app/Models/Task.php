@@ -13,11 +13,12 @@ class Task extends Model
         'subject',
         'task_key',
         'status',
-        'issue_type',
+        'category_type',
         'assignee',
         'description',
         'priority',
         'due_date',
+        'is_del',
         'created_by',
         'updated_by',
     ];
@@ -32,9 +33,9 @@ class Task extends Model
         return $this->belongsTo(ProjectStatus::class, 'status');
     }
 
-    public function issueType()
+    public function categoryInfo()
     {
-        return $this->belongsTo(ProjectIssue::class, 'issue_type');
+        return $this->belongsTo(ProjectIssue::class, 'category_type');
     }
 
     public function assigneeUser()

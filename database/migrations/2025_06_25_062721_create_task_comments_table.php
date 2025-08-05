@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
 
             $table->unsignedBigInteger('task_id');
-            $table->text('comment');
+            $table->longText('comment');
 
             $table->timestamps(); // created_at, updated_at
             $table->unsignedBigInteger('created_by')->nullable();

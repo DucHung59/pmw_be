@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tblProjectIssues', function (Blueprint $table) {
+        Schema::create('tblTaskCategories', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('project_id');
-            $table->string('issue_type');
-            $table->string('issue_color');
+            $table->string('category_type');
+            $table->string('category_color');
             $table->timestamps();
 
             // Khóa ngoại
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tblProjectIssues');
+        Schema::dropIfExists('tblTaskCategories');
     }
 };

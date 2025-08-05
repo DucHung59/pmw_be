@@ -21,7 +21,7 @@ return new class extends Migration
             $table->unsignedBigInteger('task_id')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
 
-            $table->text('description')->nullable();
+            $table->longText('description')->nullable();
             $table->timestamp('created_at')->useCurrent();
 
             // Foreign keys
