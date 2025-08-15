@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('content')->nullable();
             $table->string('file_url')->nullable();
+            $table->boolean('manager_view')->default(false); 
             $table->foreignId('created_by');
             $table->foreignId('updated_by');
             $table->timestamps();

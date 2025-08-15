@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ProjectCategory;
 use Illuminate\Http\Request;
 use \App\Models\ProjectIssue;
 use App\Models\ProjectStatus;
+use App\Models\Task;
+use App\Models\TaskCategories;
+use App\Models\TaskStatuses;
 
 class TaskConfigController extends Controller
 {
@@ -18,8 +22,9 @@ class TaskConfigController extends Controller
         ]);
 
         // Retrieve all issues for the specified project
-        $issues = ProjectIssue::where('project_id', $request->project_id)
-            ->orderBy('created_at', 'desc')
+        $issues = ProjectCategory::with('category:id,category_type,category_color')
+            ->where('project_id', $request->project_id)
+            ->orderBy('category_id')
             ->select()
             ->paginate(10);
 
@@ -38,8 +43,9 @@ class TaskConfigController extends Controller
         ]);
 
         // Retrieve all statuses for the specified project
-        $statuses = ProjectStatus::where('project_id', $request->project_id)
-            ->orderBy('created_at', 'desc')
+        $statuses = ProjectStatus::with('status:id,status_type,status_color')
+            ->where('project_id', $request->project_id)
+            ->orderBy('status_id', 'asc')
             ->select()
             ->paginate(10);
 
@@ -55,15 +61,13 @@ class TaskConfigController extends Controller
         // Validate the request
         $request->validate([
             'project_id' => 'required|integer|exists:tblProjects,id',
-            'category_type' => 'required|string|max:255',
-            'category_color' => 'nullable|string|max:7',
+            'category_id' => 'required|integer|exists:tblTaskCategories,id',
         ]);
 
         // Create a new project issue
-        $issue = ProjectIssue::create([
+        $issue = ProjectCategory::create([
             'project_id' => $request->project_id,
-            'category_type' => $request->category_type,
-            'category_color' => $request->category_color ?? '#007fe0',
+            'category_id' => $request->category_id,
         ]);
 
         return response()->json([
@@ -78,15 +82,13 @@ class TaskConfigController extends Controller
         // Validate the request
         $request->validate([
             'project_id' => 'required|integer|exists:tblProjects,id',
-            'status_type' => 'required|string|max:255',
-            'status_color' => 'nullable|string|max:7',
+            'status_id' => 'required|integer|exists:tblTaskCategories,id',
         ]);
 
         // Create a new project status
         $status = ProjectStatus::create([
             'project_id' => $request->project_id,
-            'status_type' => $request->status_type,
-            'status_color' => $request->status_color ?? '#007fe0',
+            'status_id' => $request->status_id,
         ]);
 
         return response()->json([
@@ -96,48 +98,141 @@ class TaskConfigController extends Controller
         ]);
     }
 
-    function updateProjectIssue(Request $request)
+    function getTaskCategory(Request $request)
     {
-        // Validate the request
         $request->validate([
-            'category_id' => 'required|integer|exists:tblTaskCategory,id',
-            'category_type' => 'required|string|max:255',
-            'category_color' => 'nullable|string|max:7',
+            'project_id' => 'required|integer|exists:tblProjects,id',
         ]);
 
-        // Find the issue and update it
-        $issue = ProjectIssue::find($request->category_id);
-        $issue->update([
-            'category_type' => $request->category_type,
-            'category_color' => $request->category_color ?? '#007fe0',
-        ]);
+        $usedCategoryIds = ProjectCategory::where('project_id', $request->project_id)
+            ->pluck('category_id')
+            ->toArray();
+
+        $categories = TaskCategories::whereNotIn('id', $usedCategoryIds)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
         return response()->json([
-            'message' => 'Issue updated successfully',
-            'issue' => $issue,
+            'message' => 'Task categories retrieved successfully',
+            'categories' => $categories,
             'success' => true,
         ]);
     }
 
-    function updateProjectStatus(Request $request)
+    function getStatusCategory(Request $request)
     {
-        // Validate the request
         $request->validate([
-            'status_id' => 'required|integer|exists:tblTaskStatuses,id',
-            'status_type' => 'required|string|max:255',
-            'status_color' => 'nullable|string|max:7',
+            'project_id' => 'required|integer|exists:tblProjects,id',
         ]);
 
-        // Find the status and update it
-        $status = ProjectStatus::find($request->status_id);
-        $status->update([
-            'status_type' => $request->status_type,
-            'status_color' => $request->status_color ?? '#007fe0',
-        ]);
+        $usedStatusIds = ProjectStatus::where('project_id', $request->project_id)
+            ->pluck('status_id')
+            ->toArray();
+
+        $statuses = TaskStatuses::whereNotIn('id', $usedStatusIds)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
         return response()->json([
-            'message' => 'Status updated successfully',
-            'status' => $status,
+            'message' => 'Task categories retrieved successfully',
+            'statuses' => $statuses,
+            'success' => true,
+        ]);
+    }
+
+    function deleteProjectCategory(Request $request)
+    {
+        $request->validate([
+            'category_id' => 'required|integer|exists:tblTaskCategories,id',
+        ]);
+
+        // Find the project category
+        $projectCategory = ProjectCategory::where('id', $request->category_id)
+            ->first();
+
+        $taskCategory = TaskCategories::where('id', $projectCategory->category_id)
+            ->select('id', 'category_type', 'category_color')
+            ->first();
+
+        if (in_array($taskCategory->category_type, ['Task', 'Bug', 'Other'])) {
+            return response()->json([
+                'message' => 'Không thể thao tác với danh mục mặc định: Task, Bug hoặc Other.',
+                'success' => false,
+            ]);
+        }
+
+        if (!$projectCategory) {
+            return response()->json([
+                'message' => 'Dự án không có danh mục này',
+                'success' => false,
+            ]);
+        }
+
+        $task = Task::where('project_id', $request->project_id)
+            ->where('category_type', $request->category_id)
+            ->select();
+
+        if ($task->count() > 0) {
+            return response()->json([
+                'message' => 'Không thể xoá danh mục vì có task liên quan',
+                'success' => false,
+            ]);
+        }
+
+        // Delete the project category
+        $projectCategory->delete();
+
+        return response()->json([
+            'message' => 'Danh mục ' . $taskCategory->category_type . ' trong dự án đã được xoá thành công',
+            'success' => true,
+        ]);
+    }
+
+    function deleteProjectStatus(Request $request)
+    {
+        $request->validate([
+            'project_id' => 'required|integer|exists:tblProjects,id',
+            'status_id' => 'required|integer|exists:tblTaskCategories,id',
+        ]);
+
+        // Find the project status
+        $projectStatus = ProjectStatus::where('id', $request->status_id)
+            ->first();
+
+        $taskStatus = TaskStatuses::where('id', $projectStatus->status_id)
+            ->select('id', 'status_type', 'status_color')
+            ->first();
+
+        if (in_array($taskStatus->status_type, ['Open', 'Closed', 'In Progress'])) {
+            return response()->json([
+                'message' => 'Không thể thao tác với trạng thái mặc định: Open, In Progress hoặc Closed.',
+                'success' => false,
+            ]);
+        }
+
+        if (!$projectStatus) {
+            return response()->json([
+                'message' => 'Dự án không có trạng thái này',
+                'success' => false,
+            ]);
+        }
+
+        $task = Task::where('project_id', $request->project_id)
+            ->where('status', $request->status_id)
+            ->select();
+
+        if ($task->count() > 0) {
+            return response()->json([
+                'message' => 'Không thể xoá trạng thái vì có task liên quan',
+                'success' => false,
+            ]);
+        }
+
+        // Delete the project status
+        $projectStatus->delete();
+
+        return response()->json([
+            'message' => 'Trạng thái ' . $taskStatus->status_type . ' trong dự án đã được xoá thành công',
             'success' => true,
         ]);
     }

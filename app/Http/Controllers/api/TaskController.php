@@ -4,6 +4,7 @@ namespace App\Http\Controllers\api;
 
 use App\Helpers\ActivityLogger;
 use App\Http\Controllers\Controller;
+use App\Models\ProjectCategory;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Task;
@@ -12,6 +13,8 @@ use App\Models\ProjectStatus;
 use App\Models\User;
 use App\Models\ProjectIssue;
 use App\Models\ProjectMember;
+use App\Models\TaskCategories;
+use App\Models\TaskStatuses;
 use App\Models\WorkspaceMember;
 use Carbon\Carbon;
 
@@ -95,8 +98,8 @@ class TaskController extends Controller
         // Retrieve the task by ID
         $task = Task::with([
             'assigneeUser:id,username',
-            'categoryInfo:id,project_id,category_type,category_color',
-            'statusInfo:id,project_id,status_type,status_color',
+            'categoryInfo:id,category_type,category_color',
+            'statusInfo:id,status_type,status_color',
             'creator:id,username',
         ])
             ->where('project_id', $request->project_id)
@@ -129,8 +132,8 @@ class TaskController extends Controller
     {
         $task = Task::with([
             'assigneeUser:id,username',
-            'categoryInfo:id,project_id,category_type,category_color',
-            'statusInfo:id,project_id,status_type,status_color',
+            'categoryInfo:id,category_type,category_color',
+            'statusInfo:id,status_type,status_color',
             'creator:id,username',
         ])
             ->where('assignee', Auth::id())
@@ -161,8 +164,8 @@ class TaskController extends Controller
         // Retrieve the task by ID
         $task = Task::with([
             'assigneeUser:id,username',
-            'categoryInfo:id,project_id,category_type,category_color',
-            'statusInfo:id,project_id,status_type,status_color',
+            'categoryInfo:id,category_type,category_color',
+            'statusInfo:id,status_type,status_color',
             'creator:id,username',
         ])
             ->where('created_by', Auth::id())
@@ -196,8 +199,8 @@ class TaskController extends Controller
 
         $task = Task::with([
             'assigneeUser:id,username',
-            'categoryInfo:id,project_id,category_type,category_color',
-            'statusInfo:id,project_id,status_type,status_color',
+            'categoryInfo:id,category_type,category_color',
+            'statusInfo:id,status_type,status_color',
             'creator:id,username',
         ])
             ->where('task_key', $request->task_key)
@@ -230,7 +233,7 @@ class TaskController extends Controller
     {
         $validated = $request->validate([
             'id' => 'required|exists:tblTasks,id',
-            'comment' => 'nullable|string|',
+            'comment' => 'nullable|string',
             'status' => 'nullable|integer',
             'assignee' => 'nullable|integer',
         ]);
@@ -248,11 +251,48 @@ class TaskController extends Controller
             ]);
         }
 
-        if (isset($validated['status']) && $validated['status'] != $task->status) {
-            $oldStatus = ProjectStatus::find($task->status)?->status_type ?? '';
-            $newStatus = ProjectStatus::find($validated['status'])?->status_type ?? '';
-            $task->status = $validated['status'];
-            $changes[] = "Trạng thái: \"$oldStatus\" → \"$newStatus\"";
+        $openStatusId = TaskStatuses::where('status_type', 'Open')
+            ->value('id');
+
+        $closedStatusId = TaskStatuses::where('status_type', 'Closed')
+            ->value('id');
+
+        $userRole = WorkspaceMember::where('user_id', Auth::id())
+            ->value('role');
+
+        $userProjectRole = ProjectMember::where('user_id', Auth::id())
+            ->where('project_id', $task->project_id)
+            ->value('project_role');
+
+        $isAdminOrManager = in_array($userRole, ['admin']) || in_array($userProjectRole, ['PManager']);
+
+        if (isset($validated['status'])) {
+            $newStatus = $request->status;
+            $currentStatus = $task->status;
+
+            if ($newStatus == $closedStatusId && !$isAdminOrManager) {
+                return response()->json([
+                    'message' => 'Chỉ Quản lý hoặc Quản trị hệ thống mới được chuyển trạng thái sang Closed.',
+                    'success' => false
+                ]);
+            }
+
+            // Không cho phép chuyển sang "Open" hoặc "Closed" nếu trạng thái hiện tại không phải "Open" hoặc "Closed", trừ khi là Manager/Admin
+            if (in_array($newStatus, [$openStatusId, $closedStatusId]) &&
+                !in_array($currentStatus, [$openStatusId, $closedStatusId]) &&
+                !$isAdminOrManager) {
+                return response()->json([
+                    'message' => 'Chỉ Manager hoặc Admin mới được chuyển sang trạng thái Open hoặc Closed từ trạng thái hiện tại.',
+                    'success' => false
+                ]);
+            }
+
+            if ($newStatus != $task->status) {
+                $oldStatus = TaskStatuses::find($task->status)?->status_type ?? '';
+                $newStatusText = TaskStatuses::find($validated['status'])?->status_type ?? '';
+                $task->status = $newStatus;
+                $changes[] = "Trạng thái: \"$oldStatus\" → \"$newStatusText\"";
+            }
         }
 
         if (isset($validated['assignee']) && $validated['assignee'] != $task->assignee) {
@@ -285,7 +325,7 @@ class TaskController extends Controller
 
         $finalComment = $validated['comment'];
         if (!empty($changes)) {
-            $finalComment .= "<br>---<br>" . implode("<br>", $changes);
+            $finalComment = "<br><br>----<br>Cập nhật công việc: <br>" . implode('<br> ', $changes);
         } else {
             return response()->json([
                 'message' => 'Không có thay đổi nào để cập nhật',
@@ -332,13 +372,14 @@ class TaskController extends Controller
             'subject' => 'required|string|max:255',
             'description' => 'nullable|string',
             'priority' => 'nullable|string|max:50',
+            'category' => 'required|integer|exists:tblTaskCategories,id',
         ]);
 
         // Find the task and update it
         $task = Task::with([
             'assigneeUser:id,username',
-            'issueType:id,project_id,category_type,category_color',
-            'statusInfo:id,project_id,status_type,status_color',
+            'categoryInfo:id,category_type,category_color',
+            'statusInfo:id,status_type,status_color',
             'creator:id,username',
         ])
             ->where('id', $request->task_id)
@@ -361,7 +402,7 @@ class TaskController extends Controller
         $message = "Đã cập nhật công việc {$task->subject}";
         $changes = [];
         if ($task->category_type != $request->category) {
-            $changes[] = "Thay đổi loại công việc: " . ($task->issueType)->category_type . " → " . ProjectIssue::find($request->category)->category_type;
+            $changes[] = "Thay đổi loại công việc: " . ($task->categoryInfo)->category_type . " → " . TaskCategories::find($request->category)->category_type;
         }
         if ($task->subject != $request->subject) {
             $changes[] = "Thay đổi tiêu đề: {$task->subject} → {$request->subject}";
@@ -465,12 +506,12 @@ class TaskController extends Controller
 
         if ($viewerId == $id || $isAdminOrManager) {
             $tasks = Task::with([
-                    'assigneeUser:id,username',
-                    'project:id,project_name',
-                    'categoryInfo:id,project_id,category_type,category_color',
-                    'statusInfo:id,project_id,status_type,status_color',
-                    'creator:id,username',
-                ])
+                'assigneeUser:id,username',
+                'project:id,project_name',
+                'categoryInfo:id,category_type,category_color',
+                'statusInfo:id,status_type,status_color',
+                'creator:id,username',
+            ])
                 ->where('assignee', $id)
                 ->where('is_del', '!=', 9)
                 ->select()
@@ -485,12 +526,12 @@ class TaskController extends Controller
                 ->pluck('project_id');
 
             $tasks = Task::with([
-                    'assigneeUser:id,username',
-                    'project:id,project_name',
-                    'categoryInfo:id,project_id,category_type,category_color',
-                    'statusInfo:id,project_id,status_type,status_color',
-                    'creator:id,username',
-                ])
+                'assigneeUser:id,username',
+                'project:id,project_name',
+                'categoryInfo:id,category_type,category_color',
+                'statusInfo:id,status_type,status_color',
+                'creator:id,username',
+            ])
                 ->where('assignee', $id)
                 ->where('is_del', '!=', 9)
                 ->whereIn('project_id', $sharedProjectIds)

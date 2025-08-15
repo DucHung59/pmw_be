@@ -11,15 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tblTaskCategories', function (Blueprint $table) {
+        Schema::create('tblTaskStatuses', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('project_id');
-            $table->string('category_type');
-            $table->string('category_color');
+            $table->string('status_type');
+            $table->string('status_color');
             $table->timestamps();
 
-            // Khóa ngoại
-            $table->foreign('project_id')->references('id')->on('tblProjects')->onDelete('cascade');
         });
     }
 
@@ -28,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tblTaskCategories');
+        Schema::dropIfExists('task_statuses');
     }
 };

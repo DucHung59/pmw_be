@@ -28,6 +28,7 @@ class DocumentController extends Controller
             'title'       => $request->input('title', $file->getClientOriginalName()),
             'content'     => $request->input('content', ''),
             'file_url'    => $path,
+            'manager_view' => $request->input('manager_view', false),
             'created_by'  => Auth::id(),
             'updated_by'  => Auth::id(),
         ]);
@@ -53,10 +54,13 @@ class DocumentController extends Controller
     function getDocumentsByProjectId(Request $request)
     {
         $request->validate([
-            'project_id' => 'required|integer|exists:tblDocuments,project_id',
+            'project_id' => 'required|integer|exists:tblProjects,id',
         ]);
 
-        $documents = Document::where('project_id', $request->project_id)->get();
+        $documents = Document::where('project_id', $request->project_id)
+            ->when($request->search, fn($q) => $q->where('title', $request->search))
+            ->select()
+            ->paginate($request->perPage ?? 15);
 
 
         $documents->transform(function ($item) {

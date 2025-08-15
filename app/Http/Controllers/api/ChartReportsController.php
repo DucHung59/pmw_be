@@ -26,17 +26,19 @@ class ChartReportsController extends Controller
             ->get();
 
         // Lấy tất cả trạng thái định nghĩa
-        $statuses = ProjectStatus::where('project_id', $projectId)
+        $statuses = ProjectStatus::with('status:id,status_type,status_color')
+            ->orderBy('status_id', 'asc')
+            ->where('project_id', $projectId)
             ->get();
 
         // Đếm theo status_id
         $counts = $statuses->map(function ($status) use ($tasks) {
-            $count = $tasks->where('status', $status->id)->count();
+            $count = $tasks->where('status', $status->status->id)->count();
 
             return [
-                'label' => $status->status_type,
+                'label' => $status->status->status_type,
                 'count' => $count,
-                'color' => $status->status_color,
+                'color' => $status->status->status_color,
             ];
         });
 
@@ -69,7 +71,9 @@ class ChartReportsController extends Controller
             $project = Project::find($project_id);
             if (!$project) continue;
 
-            $statuses = ProjectStatus::where('project_id', $project_id)->get();
+            $statuses = ProjectStatus::with('status:id,status_type,status_color')
+                ->orderBy('status_id', 'asc')
+                ->where('project_id', $project_id)->get();
             $projectAllTasks = $allTasks->where('project_id', $project_id);
 
             $userTasks = $projectTasks->where('assignee', $user_id);
@@ -79,12 +83,12 @@ class ChartReportsController extends Controller
             $total = $projectAllTasks->count();
 
             $statusCounts = $statuses->map(function ($status) use ($projectTasks, $total) {
-                $count = $projectTasks->where('status', $status->id)->count();
+                $count = $projectTasks->where('status', $status->status->id)->count();
 
                 return [
-                    'label' => $status->status_type,
+                    'label' => $status->status->status_type,
                     'value' => $total > 0 ? round($count / $total * 100, 2) : 0,
-                    'color' => $status->status_color,
+                    'color' => $status->status->status_color,
                 ];
             });
 

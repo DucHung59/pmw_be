@@ -14,6 +14,7 @@ class Document extends Model
         'title',
         'content',
         'file_url',
+        'manager_view',
         'created_by',
         'updated_by'
     ];

@@ -7,11 +7,14 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use App\Models\Project;
+use App\Models\ProjectCategory;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ProjectMember;
 use App\Models\ProjectIssue;
 use App\Models\ProjectStatus;
 use App\Models\Task;
+use App\Models\TaskCategories;
+use App\Models\TaskStatuses;
 use Carbon\Carbon;
 use Whoops\Exception\Formatter;
 
@@ -34,6 +37,7 @@ class ProjectController extends Controller
             'workspace_id' => $request->workspace_id,
             'project_name' => $request->project_name,
             'project_key' => $request->project_key,
+            'description' => $request->description,
             'start_date' => $start_date,
             'end_date' => $end_date,
             'created_by' => Auth::id(),
@@ -46,40 +50,24 @@ class ProjectController extends Controller
             'project_role' => 'PManager', // Default role for the creator
         ]);
 
-        $issueTypes = ['Task', 'Bug', 'Request', 'Other'];
-        $statusTypes = ['Open', 'In Progress', 'Resolved', 'Closed'];
+        $defaultCategoryTypes = ['Task', 'Bug', 'Request', 'Other']; // <-- chỉ lấy những cái cần
 
-        foreach ($issueTypes as $issueType) {
-            if ($issueType === 'Task') {
-                $issueColor = '#f87171'; // Green for Task
-            } elseif ($issueType === 'Bug') {
-                $issueColor = '#fbbf24'; // Red for Bug
-            } elseif ($issueType === 'Request') {
-                $issueColor = '#2dd4bf'; // Blue for Request
-            } else {
-                $issueColor = '#22d3ee'; // Grey for Other
-            }
-            ProjectIssue::create([
+        $taskCategories = TaskCategories::whereIn('category_type', $defaultCategoryTypes)->get();
+        foreach ($taskCategories as $category) {
+            ProjectCategory::create([
                 'project_id' => $project->id,
-                'category_type' => $issueType,
-                'category_color' => $issueColor,
+                'category_id' => $category->id,
             ]);
         }
 
-        foreach ($statusTypes as $statusType) {
-            if ($statusType === 'Open') {
-                $statusColor = '#f87171'; // Red for Open
-            } elseif ($statusType === 'In Progress') {
-                $statusColor = '#fbbf24'; // Yellow for In Progress
-            } elseif ($statusType === 'Resolved') {
-                $statusColor = '#22c55e'; // Green for Resolved
-            } else {
-                $statusColor = '#6b7280'; // Grey for Closed
-            }
+        // Gán một số status mặc định
+        $defaultStatusTypes = ['Open', 'In Progress', 'Resolved', 'Closed']; // <-- chỉ lấy những cái cần
+
+        $taskStatuses = TaskStatuses::whereIn('status_type', $defaultStatusTypes)->get();
+        foreach ($taskStatuses as $status) {
             ProjectStatus::create([
                 'project_id' => $project->id,
-                'status_type' => $statusType,
-                'status_color' => $statusColor,
+                'status_id' => $status->id,
             ]);
         }
 
@@ -155,8 +143,14 @@ class ProjectController extends Controller
             ], 404);
         }
 
-        $projectIssues = ProjectIssue::where('project_id', $project->id)->get();
-        $projectStatuses = ProjectStatus::where('project_id', $project->id)->get();
+        $projectIssues = ProjectCategory::with(['category:id,category_type,category_color'])
+                            ->where('project_id', $project->id)
+                            ->orderBy('category_id')
+                            ->get();
+        $projectStatuses = ProjectStatus::with(['status:id,status_type,status_color'])
+                            ->where('project_id', $project->id)
+                            ->orderBy('status_id')
+                            ->get();
 
         return response()->json([
             'message' => 'Project details retrieved successfully',

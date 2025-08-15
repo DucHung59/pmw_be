@@ -30,12 +30,12 @@ class Task extends Model
 
     public function statusInfo()
     {
-        return $this->belongsTo(ProjectStatus::class, 'status');
+        return $this->belongsTo(TaskStatuses::class, 'status');
     }
 
     public function categoryInfo()
     {
-        return $this->belongsTo(ProjectIssue::class, 'category_type');
+        return $this->belongsTo(TaskCategories::class, 'category_type');
     }
 
     public function assigneeUser()

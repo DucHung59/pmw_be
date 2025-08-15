@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('workspace_id');
             $table->string('project_name');
             $table->string('project_key')->unique();
-            $table->text('description')->nullable();
+            $table->longText('description')->nullable();
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
             $table->unsignedBigInteger('created_by'); // Added created_by field

@@ -4,23 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class ProjectStatus extends Model
+class ProjectCategory extends Model
 {
     //
-    protected $table = 'tblProjectStatuses';
+    protected $table = 'tblProjectCategories';
 
     protected $fillable = [
         'project_id',
-        'status_id',
+        'category_id',
     ];
 
     public function project()
     {
         return $this->belongsTo(Project::class, 'project_id');
     }
-
-    public function status()
+    
+    public function category()
     {
-        return $this->belongsTo(TaskStatuses::class, 'status_id');
+        return $this->belongsTo(TaskCategories::class, 'category_id');
     }
 }

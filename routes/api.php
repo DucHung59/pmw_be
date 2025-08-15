@@ -55,8 +55,10 @@ Route::prefix('project')->group(function () {
     Route::get('/getProjectStatuses', [TaskConfigController::class, 'getProjectStatuses'])->middleware('auth:sanctum');
     Route::post('/createProjectIssue', [TaskConfigController::class, 'createProjectIssue'])->middleware('auth:sanctum');
     Route::post('/createProjectStatus', [TaskConfigController::class, 'createProjectStatus'])->middleware('auth:sanctum');
-    Route::post('/updateProjectIssue', [TaskConfigController::class, 'updateProjectIssue'])->middleware('auth:sanctum');
-    Route::post('/updateProjectStatus', [TaskConfigController::class, 'updateProjectStatus'])->middleware('auth:sanctum');
+    Route::get('get/task-category', [TaskConfigController::class, 'getTaskCategory'])->middleware('auth:sanctum');
+    Route::get('get/task-status', [TaskConfigController::class, 'getStatusCategory'])->middleware('auth:sanctum');
+    route::post('delete/project-category', [TaskConfigController::class, 'deleteProjectCategory'])->middleware('auth:sanctum');
+    route::post('delete/project-status', [TaskConfigController::class, 'deleteProjectStatus'])->middleware('auth:sanctum');
 
     Route::get('/get/reports', [ChartReportsController::class, 'getProjectReports'])->middleware('auth:sanctum');
 });
